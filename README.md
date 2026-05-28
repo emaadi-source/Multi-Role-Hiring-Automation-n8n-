@@ -49,16 +49,16 @@ The AI returns a structured JSON for every candidate:
 ```
 ### Tech Stack
 
-n8n
-Google Forms
-Google Sheets
-Grok API
-Gmail + Calendar
+- n8n
+- Google Forms
+- Google Sheets
+- Grok API
+- Gmail + Calendar
 
 ### What's Included
 
--> HiringAutomation.json 
--> Walkthrough_Report.pdf 
+- HiringAutomation.json 
+- Walkthrough_Report.pdf 
 
 
 ### Quick Setup
