@@ -4,6 +4,11 @@
 
 ---
 
+<img width="1232" height="566" alt="95b6493e-31c7-4b96-b40a-27ec490bd89c" src="https://github.com/user-attachments/assets/ac0f4e41-bb5c-43b9-9528-6043b1ec30ad" />
+
+
+---
+
 ## The Problem
 
 Hiring teams spend 15-20 minutes manually reviewing each application. Decisions are inconsistent. Candidates wait days for responses.
