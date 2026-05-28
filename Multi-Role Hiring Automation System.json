@@ -1,0 +1,1525 @@
+{
+  "name": "Multi-Role Hiring Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "b2bfdae1-2d72-4022-9722-c41a84537a59",
+      "name": "Every 30 Minutes (Main)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1zBK9Ivt05xvCzZtCzSb0WFnlErTgvvPvH0bNd3LvKhs",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1zBK9Ivt05xvCzZtCzSb0WFnlErTgvvPvH0bNd3LvKhs/edit?resourcekey=&gid=1849571353#gid=1849571353",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "id": "383fe685-ebc8-4cd4-bf42-54b41c6983f7",
+      "name": "Read SWE Applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1idZpwRHshNRI6S-f9ji1TQe6q70OAVx2yeacZP6hBuw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1idZpwRHshNRI6S-f9ji1TQe6q70OAVx2yeacZP6hBuw/edit?resourcekey=&gid=733528503#gid=733528503",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "id": "f5022029-dbdb-48e3-be56-8462d0a46d43",
+      "name": "Read BDM Applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// SWE - Auto-detect columns\nconst items = $input.all();\nconst validCandidates = [];\n\nfor (const item of items) {\n  const row = item.json;\n  \n  // Find resume column\n  let resumeUrl = '';\n  for (const key of Object.keys(row)) {\n    if (key.toLowerCase().includes('resume')) {\n      resumeUrl = row[key];\n      break;\n    }\n  }\n  \n  // Find email\n  let email = '';\n  for (const key of Object.keys(row)) {\n    if (key.toLowerCase().includes('email')) {\n      email = row[key];\n      break;\n    }\n  }\n  \n  // Find name\n  let name = '';\n  for (const key of Object.keys(row)) {\n    if (key.toLowerCase().includes('name')) {\n      name = row[key];\n      break;\n    }\n  }\n  \n  if (!resumeUrl || !email) continue;\n  \n  resumeUrl = resumeUrl.replace(/\\s/g, '');\n  let fileId = '';\n  if (resumeUrl.includes('open?id=')) {\n    fileId = resumeUrl.split('open?id=')[1].split('&')[0];\n  }\n  \n  if (!fileId) continue;\n  \n  validCandidates.push({\n    json: {\n      name: name || 'Unknown',\n      email: email.trim().toLowerCase(),\n      role: 'Software Engineer',\n      role_short: 'SWE',\n      resumeUrl: resumeUrl,\n      fileId: fileId,\n      status: 'Pending',\n      submittedAt: row['Timestamp'] || new Date().toISOString(),\n      yearsExperience: row['Years of Experience'] || 'Not specified',\n      skills: row['Technical Skills'] || 'Not specified',\n      githubUrl: row['GitHub Profile Link'] || 'N/A'\n    }\n  });\n}\n\nreturn validCandidates;"
+      },
+      "id": "3734f7bc-807c-402c-8535-a5be26eaca85",
+      "name": "Normalize SWE Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// CLEAN VERSION - Remove debugColumns\nconst items = $input.all();\nconst validCandidates = [];\n\nfor (const item of items) {\n  const row = item.json;\n  \n  // Find the resume column\n  let resumeUrl = '';\n  for (const key of Object.keys(row)) {\n    if (key.toLowerCase().includes('resume')) {\n      resumeUrl = row[key];\n      break;\n    }\n  }\n  \n  // Find email column\n  let email = '';\n  for (const key of Object.keys(row)) {\n    if (key.toLowerCase().includes('email')) {\n      email = row[key];\n      break;\n    }\n  }\n  \n  // Find name column\n  let name = '';\n  for (const key of Object.keys(row)) {\n    if (key.toLowerCase().includes('name') || key.toLowerCase().includes('full')) {\n      name = row[key];\n      break;\n    }\n  }\n  \n  if (!resumeUrl || !email) continue;\n  \n  resumeUrl = resumeUrl.replace(/\\s/g, '');\n  let fileId = '';\n  if (resumeUrl.includes('open?id=')) {\n    fileId = resumeUrl.split('open?id=')[1].split('&')[0];\n  }\n  \n  if (!fileId) continue;\n  \n  validCandidates.push({\n    json: {\n      name: name || 'Unknown',\n      email: email.trim().toLowerCase(),\n      role: 'Business Development Manager',\n      role_short: 'BDM',\n      resumeUrl: resumeUrl,\n      fileId: fileId,\n      status: 'Pending',\n      submittedAt: row['Timestamp'] || new Date().toISOString(),\n      yearsExperience: row['Years of Experience'] || 'Not specified',\n      salesExperience: row['Sales Experience / Revenue Generated'] || 'Not specified',\n      linkedinUrl: row['LinkedIn Profile Link'] || 'N/A'\n    }\n  });\n}\n\nreturn validCandidates;"
+      },
+      "id": "40b5b6ff-f841-4219-9ac6-15ba864c1190",
+      "name": "Normalize BDM Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.fileId }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {}
+          }
+        }
+      },
+      "id": "8870c5e8-be61-4275-81f8-c78df21b3506",
+      "name": "Download Resume via Drive API (SWE)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PgKwg1aAynLThs3P",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.fileId }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {}
+          }
+        }
+      },
+      "id": "0a93cabd-dad6-4424-8743-ab6dcee95143",
+      "name": "Download Resume via Drive API (BDM)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        672,
+        304
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PgKwg1aAynLThs3P",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX: Properly carry ALL candidate fields through binary download\n// The Drive download node passes json fields through — we just need to read them\nconst item = $input.item;\nconst candidateData = item.json;\n\n// Try to extract text from binary if available\nlet resumeText = 'Resume file downloaded successfully.';\nif (item.binary) {\n  const binaryKeys = Object.keys(item.binary);\n  if (binaryKeys.length > 0) {\n    resumeText = `Resume file downloaded (${binaryKeys[0]}). File ID: ${candidateData.fileId}`;\n  }\n}\n\nreturn [{\n  json: {\n    name: candidateData.name || 'Unknown',\n    email: candidateData.email || '',\n    role: candidateData.role || 'Software Engineer',\n    role_short: candidateData.role_short || 'SWE',\n    resumeUrl: candidateData.resumeUrl || '',\n    fileId: candidateData.fileId || '',\n    status: candidateData.status || 'Pending',\n    submittedAt: candidateData.submittedAt || new Date().toISOString(),\n    yearsExperience: candidateData.yearsExperience || 'Not specified',\n    skills: candidateData.skills || 'Not specified',\n    education: candidateData.education || 'Not specified',\n    githubUrl: candidateData.githubUrl || 'N/A',\n    resumeText: resumeText\n  }\n}];"
+      },
+      "id": "ddf7e678-bd7e-4990-817e-a988b3232bad",
+      "name": "Prepare Resume for AI (SWE)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX: Properly carry ALL candidate fields through binary download\nconst item = $input.item;\nconst candidateData = item.json;\n\nlet resumeText = 'Resume file downloaded successfully.';\nif (item.binary) {\n  const binaryKeys = Object.keys(item.binary);\n  if (binaryKeys.length > 0) {\n    resumeText = `Resume file downloaded (${binaryKeys[0]}). File ID: ${candidateData.fileId}`;\n  }\n}\n\nreturn [{\n  json: {\n    name: candidateData.name || 'Unknown',\n    email: candidateData.email || '',\n    role: candidateData.role || 'Business Development Manager',\n    role_short: candidateData.role_short || 'BDM',\n    resumeUrl: candidateData.resumeUrl || '',\n    fileId: candidateData.fileId || '',\n    status: candidateData.status || 'Pending',\n    submittedAt: candidateData.submittedAt || new Date().toISOString(),\n    yearsExperience: candidateData.yearsExperience || 'Not specified',\n    salesExperience: candidateData.salesExperience || 'Not specified',\n    industries: candidateData.industries || 'Not specified',\n    linkedinUrl: candidateData.linkedinUrl || 'N/A',\n    resumeText: resumeText\n  }\n}];"
+      },
+      "id": "c8198c77-d226-487e-8b8b-aacdce22a7aa",
+      "name": "Prepare Resume for AI (BDM)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a technical recruiter. Evaluate this Software Engineer candidate. Name: {{ $json.name }}, Years of Experience: {{ $json.yearsExperience }}, Technical Skills: {{ $json.skills }}. Respond with ONLY valid JSON (no other text): {\\\"score\\\": 0, \\\"classification\\\": \\\"weak\\\", \\\"summary\\\": \\\"\\\", \\\"strengths\\\": [], \\\"concerns\\\": []}\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "1ed1208a-c8c7-419d-9f0c-5c1ae54f1319",
+      "name": "AI Screen SWE Candidate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a sales recruiter. Evaluate this Business Development Manager candidate. Name: {{ $json.name }}, Years of Experience: {{ $json.yearsExperience }}, Sales Experience: {{ $json.salesExperience }}. Respond with ONLY valid JSON (no other text): {\\\"score\\\": 0, \\\"classification\\\": \\\"weak\\\", \\\"summary\\\": \\\"\\\", \\\"strengths\\\": [], \\\"concerns\\\": []}\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "63334cd9-fab1-4eb4-bb96-9b97bdb944bf",
+      "name": "AI Screen BDM Candidate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Groq/OpenAI response\nconst item = $input.item.json;\nconst candidateData = $('Prepare Resume for AI (SWE)').item.json;\n\nlet aiResult = {};\ntry {\n  // Groq returns response in choices[0].message.content\n  const rawText = item.choices[0].message.content;\n  const cleaned = rawText.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  aiResult = JSON.parse(cleaned);\n} catch(e) {\n  aiResult = {\n    score: 50,\n    classification: 'average',\n    summary: 'AI evaluation could not be parsed. Manual review recommended.',\n    strengths: ['Application submitted'],\n    concerns: ['AI parsing issue: ' + e.message],\n    interview_recommendation: 'Yes - Worth Exploring'\n  };\n}\n\nconst classification = (aiResult.classification || 'average').toLowerCase();\n\nreturn [{\n  json: {\n    Name: candidateData.name || '',\n    Email: candidateData.email || '',\n    Role: candidateData.role || 'Software Engineer',\n    'Submitted At': candidateData.submittedAt || '',\n    'Resume URL': candidateData.resumeUrl || '',\n    'AI Score': aiResult.score || 0,\n    'AI Classification': classification,\n    'AI Summary': aiResult.summary || '',\n    'AI Strengths': (aiResult.strengths || []).join('; '),\n    'AI Concerns': (aiResult.concerns || []).join('; '),\n    'AI Recommendation': aiResult.interview_recommendation || '',\n    Status: classification === 'strong' ? 'Interview' : classification === 'average' ? 'Manual Review' : 'Rejected',\n    'Email Sent': 'No',\n    'Email Sent At': '',\n    'Processed At': new Date().toISOString()\n  }\n}];"
+      },
+      "id": "2a210669-8b04-4604-93b6-d19096f77a2e",
+      "name": "Parse AI Result (SWE)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $input.item.json;\nconst candidateData = $('Prepare Resume for AI (BDM)').item.json;\n\nlet aiResult = {};\ntry {\n  \n  const rawText = item.choices[0].message.content;\n  const cleaned = rawText.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  aiResult = JSON.parse(cleaned);\n} catch(e) {\n  aiResult = {\n    score: 50,\n    classification: 'average',\n    summary: 'AI evaluation could not be parsed. Manual review recommended.',\n    strengths: ['Application submitted'],\n    concerns: ['AI parsing issue: ' + e.message],\n    interview_recommendation: 'Yes - Worth Exploring'\n  };\n}\n\nconst classification = (aiResult.classification || 'average').toLowerCase();\n\nreturn [{\n  json: {\n    Name: candidateData.name || '',\n    Email: candidateData.email || '',\n    Role: candidateData.role || 'Business Development Manager',\n    'Submitted At': candidateData.submittedAt || '',\n    'Resume URL': candidateData.resumeUrl || '',\n    'AI Score': aiResult.score || 0,\n    'AI Classification': classification,\n    'AI Summary': aiResult.summary || '',\n    'AI Strengths': (aiResult.strengths || []).join('; '),\n    'AI Concerns': (aiResult.concerns || []).join('; '),\n    'AI Recommendation': aiResult.interview_recommendation || '',\n    Status: classification === 'strong' ? 'Interview' : (classification === 'average' ? 'Manual Review' : 'Rejected'),\n    'Email Sent': 'No',\n    'Email Sent At': '',\n    'Processed At': new Date().toISOString()\n  }\n}];"
+      },
+      "id": "90b05413-2892-4cb5-98f9-e57bd80d19ea",
+      "name": "Parse AI Result (BDM)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1upCC4uyqki6G5HzYMhCvsR6AKvJA_hhYltzhfHeUxdg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Candidates",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted At",
+              "displayName": "Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resume URL",
+              "displayName": "Resume URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Score",
+              "displayName": "AI Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Classification",
+              "displayName": "AI Classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Summary",
+              "displayName": "AI Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Strengths",
+              "displayName": "AI Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Concerns",
+              "displayName": "AI Concerns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Recommendation",
+              "displayName": "AI Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent",
+              "displayName": "Email Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent At",
+              "displayName": "Email Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed At",
+              "displayName": "Processed At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f9189574-da77-4dd2-a891-6eca242197b7",
+      "name": "Store SWE in Master Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1upCC4uyqki6G5HzYMhCvsR6AKvJA_hhYltzhfHeUxdg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Candidates",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted At",
+              "displayName": "Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resume URL",
+              "displayName": "Resume URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Score",
+              "displayName": "AI Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Classification",
+              "displayName": "AI Classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Summary",
+              "displayName": "AI Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Strengths",
+              "displayName": "AI Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Concerns",
+              "displayName": "AI Concerns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Recommendation",
+              "displayName": "AI Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent",
+              "displayName": "Email Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent At",
+              "displayName": "Email Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed At",
+              "displayName": "Processed At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "223d2e5c-05de-4502-abcd-fe4c7688f4fd",
+      "name": "Store BDM in Master Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "14ef40d5-a4ea-4fc6-a56a-8894fb373de1",
+      "name": "Every Hour (Email Sender)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1upCC4uyqki6G5HzYMhCvsR6AKvJA_hhYltzhfHeUxdg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Candidates",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "bbd11387-d7eb-4979-b8fd-83e5e85288f7",
+      "name": "Read Candidates Needing Email",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        704
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json['Email Sent'] }}",
+              "rightValue": "No",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "474715ac-6ca7-436e-8b11-7720f6f52326",
+      "name": "Has Pending Emails?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json['AI Classification'] }}",
+              "rightValue": "strong",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4fc04e6c-b965-40cc-a54b-14d75de44f02",
+      "name": "Is Strong Candidate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json['AI Classification'] }}",
+              "rightValue": "average",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b563e34f-f429-48da-bac5-063712ff1b7d",
+      "name": "Is Average Candidate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        912
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "=Interview Invitation - {{ $json.Role }} Position | Trilles AI",
+        "message": "=<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">\n  <div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;\">\n    <h1 style=\"color: white; margin: 0;\">🎉 Congratulations!</h1>\n  </div>\n  <div style=\"padding: 30px;\">\n    <p style=\"font-size: 16px;\">Dear <strong>{{ $json.Name }}</strong>,</p>\n    <p>We are thrilled to inform you that after carefully reviewing your application for the <strong>{{ $json.Role }}</strong> position at <strong>Trilles AI</strong>, we are impressed with your qualifications and would love to move forward.</p>\n    <div style=\"background: #f0f7ff; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0;\">\n      <p style=\"margin: 0;\"><strong>Your AI Evaluation Score:</strong> {{ $json['AI Score'] }}/100</p>\n      <p style=\"margin: 5px 0 0;\"><strong>Assessment:</strong> {{ $json['AI Summary'] }}</p>\n    </div>\n    <p>We would like to invite you for an interview to discuss your experience and how you can contribute to our team.</p>\n    <div style=\"background: #fff3e0; border-radius: 8px; padding: 20px; margin: 20px 0;\">\n      <h3 style=\"margin-top: 0; color: #f57c00;\">📅 Interview Details</h3>\n      <p>A Google Calendar invitation has been sent to your email with the interview time slot. Please accept the invite to confirm your participation.</p>\n      <p><strong>Format:</strong> Video call (Google Meet link in calendar invite)<br><strong>Duration:</strong> 45-60 minutes</p>\n    </div>\n    <p>Please reply to this email if you have any questions or need to reschedule.</p>\n    <p>Best regards,<br><strong>The Trilles AI Hiring Team</strong></p>\n  </div>\n  <div style=\"background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;\">\n    <p>Trilles AI | www.trillesai.com</p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "6df6716b-70fa-4a81-bb31-c9a5ce45c0d2",
+      "name": "Send Interview Invitation Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        704
+      ],
+      "webhookId": "12f6eb9a-e04f-4a05-a366-7ac543b42899",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "f6wMOdAIla0OuSXw",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ $now.plus(3, 'days').set({ hour: 10, minute: 0 }).toISO() }}",
+        "end": "={{ $now.plus(3, 'days').set({ hour: 11, minute: 0 }).toISO() }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $json.Email }}"
+          ],
+          "description": "=Interview for {{ $json.Name }} applying for {{ $json.Role }}.\n\nAI Score: {{ $json['AI Score'] }}/100\nSummary: {{ $json['AI Summary'] }}\nCandidate Email: {{ $json.Email }}",
+          "summary": "=Interview: {{ $json.Name }} | {{ $json.Role }} - Trilles AI"
+        }
+      },
+      "id": "574a337c-3061-43d7-9517-23a1d40bc875",
+      "name": "Create Google Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        560
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "11JAosmE7vBCmmL5",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mimmad942003@gmail.com",
+        "subject": "=⚠️ Manual Review Required: {{ $json.Name }} | {{ $json.Role }} (Score: {{ $json['AI Score'] }}/100)",
+        "message": "=<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: #ff9800; padding: 20px; text-align: center;\">\n    <h2 style=\"color: white; margin: 0;\">⚠️ Manual Review Required</h2>\n  </div>\n  <div style=\"padding: 25px;\">\n    <p>A candidate requires your manual review:</p>\n    <table style=\"width: 100%; border-collapse: collapse;\">\n      <tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Candidate:</strong></td><td style=\"padding: 8px;\">{{ $json.Name }}</td></tr>\n      <tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Email:</strong></td><td style=\"padding: 8px;\">{{ $json.Email }}</td></tr>\n      <tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Role:</strong></td><td style=\"padding: 8px;\">{{ $json.Role }}</td></tr>\n      <tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>AI Score:</strong></td><td style=\"padding: 8px;\">{{ $json['AI Score'] }}/100</td></tr>\n      <tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Summary:</strong></td><td style=\"padding: 8px;\">{{ $json['AI Summary'] }}</td></tr>\n      <tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Strengths:</strong></td><td style=\"padding: 8px;\">{{ $json['AI Strengths'] }}</td></tr>\n      <tr><td style=\"padding: 8px;\"><strong>Concerns:</strong></td><td style=\"padding: 8px;\">{{ $json['AI Concerns'] }}</td></tr>\n    </table>\n    <p style=\"margin-top: 20px;\">Please review this candidate in the master hiring sheet.</p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "ba9e9cc6-db34-47fe-8646-4348766a98e9",
+      "name": "Notify Hiring Manager",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        912
+      ],
+      "webhookId": "0d52bf66-ba48-4c71-a85c-83941f12b88b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "f6wMOdAIla0OuSXw",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "=Your Application for {{ $json.Role }} at Trilles AI",
+        "message": "=<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">\n  <div style=\"background: #546e7a; padding: 30px; text-align: center;\">\n    <h2 style=\"color: white; margin: 0;\">Thank You for Applying</h2>\n  </div>\n  <div style=\"padding: 30px;\">\n    <p>Dear <strong>{{ $json.Name }}</strong>,</p>\n    <p>Thank you for taking the time to apply for the <strong>{{ $json.Role }}</strong> position at <strong>Trilles AI</strong>. We genuinely appreciate your interest in joining our team.</p>\n    <p>After carefully reviewing your application, we have decided to move forward with other candidates whose qualifications more closely align with our current requirements for this specific role.</p>\n    <ul style=\"line-height: 2;\">\n      <li>Continue developing your skills in this field</li>\n      <li>Apply again in the future as we grow and open new positions</li>\n      <li>Follow us on LinkedIn to stay updated on future opportunities</li>\n    </ul>\n    <div style=\"background: #e8f5e9; border-radius: 8px; padding: 20px; margin: 20px 0;\">\n      <p style=\"margin: 0;\">We wish you all the best in your job search and future endeavors!</p>\n    </div>\n    <p>Warm regards,<br><strong>The Trilles AI Hiring Team</strong></p>\n  </div>\n  <div style=\"background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;\">\n    <p>Trilles AI | www.trillesai.com</p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "7bfc5320-264d-453e-9ea5-5070781e1da0",
+      "name": "Send Rejection Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        1072
+      ],
+      "webhookId": "102c72c3-dd08-4b68-8026-e7cd0f9ac41b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "f6wMOdAIla0OuSXw",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1upCC4uyqki6G5HzYMhCvsR6AKvJA_hhYltzhfHeUxdg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Candidates",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Sent": "Yes",
+            "Email Sent At": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent",
+              "displayName": "Email Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Email Sent At",
+              "displayName": "Email Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9a0081ac-c42c-4eb7-8272-513ef4d8e645",
+      "name": "Mark Email Sent (Strong)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        896,
+        640
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1upCC4uyqki6G5HzYMhCvsR6AKvJA_hhYltzhfHeUxdg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Candidates",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Sent": "Yes",
+            "Email Sent At": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent",
+              "displayName": "Email Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Email Sent At",
+              "displayName": "Email Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f380e198-901c-45df-a02d-0fcf81843615",
+      "name": "Mark Email Sent (Average)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        912
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1upCC4uyqki6G5HzYMhCvsR6AKvJA_hhYltzhfHeUxdg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Candidates",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "Email Sent": "Yes",
+            "Email Sent At": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Submitted At",
+              "displayName": "Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume URL",
+              "displayName": "Resume URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Score",
+              "displayName": "AI Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Classification",
+              "displayName": "AI Classification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Summary",
+              "displayName": "AI Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Strengths",
+              "displayName": "AI Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Concerns",
+              "displayName": "AI Concerns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Recommendation",
+              "displayName": "AI Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Sent",
+              "displayName": "Email Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Sent At",
+              "displayName": "Email Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed At",
+              "displayName": "Processed At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "threadId",
+              "displayName": "threadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "labelIds",
+              "displayName": "labelIds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "dfe8e16f-5e9d-48ce-8b14-f66b778d0c1d",
+      "name": "Mark Email Sent (Weak)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        1072
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KJEBRtGaASFDMKzC",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 30 Minutes (Main)": {
+      "main": [
+        [
+          {
+            "node": "Read SWE Applications",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read BDM Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read SWE Applications": {
+      "main": [
+        [
+          {
+            "node": "Normalize SWE Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read BDM Applications": {
+      "main": [
+        [
+          {
+            "node": "Normalize BDM Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize SWE Data": {
+      "main": [
+        [
+          {
+            "node": "Download Resume via Drive API (SWE)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize BDM Data": {
+      "main": [
+        [
+          {
+            "node": "Download Resume via Drive API (BDM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Resume via Drive API (SWE)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Resume for AI (SWE)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Resume via Drive API (BDM)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Resume for AI (BDM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Resume for AI (SWE)": {
+      "main": [
+        [
+          {
+            "node": "AI Screen SWE Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Resume for AI (BDM)": {
+      "main": [
+        [
+          {
+            "node": "AI Screen BDM Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Screen SWE Candidate": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Result (SWE)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Screen BDM Candidate": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Result (BDM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Result (SWE)": {
+      "main": [
+        [
+          {
+            "node": "Store SWE in Master Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Result (BDM)": {
+      "main": [
+        [
+          {
+            "node": "Store BDM in Master Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Hour (Email Sender)": {
+      "main": [
+        [
+          {
+            "node": "Read Candidates Needing Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Candidates Needing Email": {
+      "main": [
+        [
+          {
+            "node": "Has Pending Emails?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Pending Emails?": {
+      "main": [
+        [
+          {
+            "node": "Is Strong Candidate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Strong Candidate?": {
+      "main": [
+        [
+          {
+            "node": "Create Google Calendar Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Interview Invitation Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Average Candidate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Average Candidate?": {
+      "main": [
+        [
+          {
+            "node": "Notify Hiring Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Google Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Mark Email Sent (Strong)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Interview Invitation Email": {
+      "main": [
+        [
+          {
+            "node": "Mark Email Sent (Strong)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Hiring Manager": {
+      "main": [
+        [
+          {
+            "node": "Mark Email Sent (Average)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Rejection Email": {
+      "main": [
+        [
+          {
+            "node": "Mark Email Sent (Weak)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "17299d8f-605e-4212-8b28-9abe8fdd55c8",
+  "meta": {
+    "instanceId": "c36de5e3481adca6b8726be9b60a6c33dca28f8235670abb36a3d3abddbf8787"
+  },
+  "id": "pXEwLhR4OOJduRE1",
+  "tags": []
+}
