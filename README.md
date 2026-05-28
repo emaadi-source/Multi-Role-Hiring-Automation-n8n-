@@ -46,3 +46,34 @@ The AI returns a structured JSON for every candidate:
   "strengths": ["Python", "System design", "Leadership"],
   "concerns": ["Limited cloud experience"]
 }
+
+### Tech Stack
+| Tool | Purpose |
+| --- | --- |
+| n8n | Workflow automation |
+| Google Forms | Application intake |
+| Google Sheets | Data storage |
+| Groq API | AI evaluation - free tier |
+| Gmail + Calendar | Communication |
+
+### What's Included
+| File | Description |
+| --- | --- |
+| HiringAutomation.json | Complete n8n workflow - 29 nodes |
+| Walkthrough_Report.pdf | Technical documentation |
+| README.md | This file |
+
+### Quick Setup
+- Create SWE and BDM Google Forms linked to sheets
+- Create a master sheet with required columns
+- Get free API keys: Groq + Google OAuth2
+- Import JSON into n8n
+- Replace placeholder IDs and API keys
+- Activate workflow
+
+### Impact
+| Metric | Before | After |
+| --- | --- | --- |
+| Time per app | 15-20 min | 30 sec |
+| Response time | 3-5 days | < 1 hour |
+| Manager workload | 100% apps | Only average |
